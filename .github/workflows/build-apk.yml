@@ -27,14 +27,28 @@ jobs:
           channel: 'stable'
           cache: true
 
+      - name: Setup Gradle Wrapper
+        run: |
+          # Download gradle-wrapper.jar
+          wget -q -O android/gradle/wrapper/gradle-wrapper.jar \
+            https://raw.githubusercontent.com/gradle/gradle/v7.6.4/gradle/wrapper/gradle-wrapper.jar
+          
+          # Create gradlew script
+          cat > android/gradlew << 'GRADLEW'
+          #!/usr/bin/env sh
+          APP_HOME=$(dirname "$0")
+          CLASSPATH=$APP_HOME/gradle/wrapper/gradle-wrapper.jar
+          exec java $DEFAULT_JVM_OPTS $JAVA_OPTS $GRADLE_OPTS \
+            "-Dorg.gradle.appname=gradlew" \
+            -classpath "$CLASSPATH" \
+            org.gradle.wrapper.GradleWrapperMain "$@"
+          GRADLEW
+          chmod +x android/gradlew
+          echo "Gradle wrapper ready"
+          ls -la android/gradle/wrapper/
+
       - name: Get Dependencies
         run: flutter pub get
-
-      - name: Generate gradle wrapper
-        working-directory: android
-        run: |
-          gradle wrapper --gradle-version=7.6.3
-          chmod +x gradlew
 
       - name: Build APK
         run: flutter build apk --release --no-tree-shake-icons
@@ -55,8 +69,9 @@ jobs:
           body: |
             ## 📱 SMEKDA MOBILE TEST
             Aplikasi Ujian Digital SMKN 2 Sigli
+            WebView → https://smekda-mobile-test.vercel.app/
             
-            **Download APK di bawah ⬇️**
+            **⬇️ Download APK di bawah (Assets section)**
           files: build/app/outputs/flutter-apk/app-release.apk
           draft: false
           prerelease: false
