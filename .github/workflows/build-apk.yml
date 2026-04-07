@@ -1,0 +1,105 @@
+name: Build SMEKDA MOBILE TEST APK
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+    branches:
+      - main
+      - master
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  build-apk:
+    name: Build Flutter APK
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Checkout code
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      # 2. Setup Java (required for Android build)
+      - name: Setup Java JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      # 3. Setup Flutter
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.22.0'
+          channel: 'stable'
+          cache: true
+
+      # 4. Cache pub dependencies
+      - name: Cache Flutter pub
+        uses: actions/cache@v4
+        with:
+          path: ~/.pub-cache
+          key: ${{ runner.os }}-pub-${{ hashFiles('**/pubspec.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-pub-
+
+      # 5. Install dependencies
+      - name: Get Flutter Dependencies
+        run: flutter pub get
+
+      # 6. Run tests (optional, comment out if not needed)
+      # - name: Run Tests
+      #   run: flutter test
+
+      # 7. Build APK (debug - no signing needed)
+      - name: Build Debug APK
+        run: flutter build apk --debug --verbose
+
+      # 8. Build Release APK (unsigned)
+      - name: Build Release APK
+        run: flutter build apk --release --no-tree-shake-icons
+
+      # 9. Upload APK artifact
+      - name: Upload Debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: SMEKDA-MOBILE-TEST-Debug
+          path: build/app/outputs/flutter-apk/app-debug.apk
+          retention-days: 30
+
+      - name: Upload Release APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: SMEKDA-MOBILE-TEST-Release
+          path: build/app/outputs/flutter-apk/app-release.apk
+          retention-days: 30
+
+      # 10. Create GitHub Release (only on push to main)
+      - name: Create GitHub Release
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ github.run_number }}
+          name: SMEKDA MOBILE TEST v${{ github.run_number }}
+          body: |
+            ## ExamBrowser APK
+            
+            Build otomatis dari commit: ${{ github.sha }}
+            
+            ### Fitur:
+            - 🔒 Lock layar (tidak bisa keluar saat ujian)
+            - 📵 Blokir screenshot
+            - 📡 Soal dari server
+            - ⏱️ Timer ujian
+            
+            ### Download:
+            Unduh file APK di bawah (Assets section)
+          files: |
+            build/app/outputs/flutter-apk/app-release.apk
+            build/app/outputs/flutter-apk/app-debug.apk
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
