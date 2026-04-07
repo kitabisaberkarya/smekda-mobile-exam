@@ -27,18 +27,33 @@ jobs:
           channel: 'stable'
           cache: true
 
+      - name: Create fresh Flutter project & merge our code
+        run: |
+          # Create a complete flutter project as template
+          flutter create --org com.smekda --project-name smekda_mobile_test /tmp/smekda_fresh
+          
+          # Copy our source files into fresh project
+          cp -r lib/ /tmp/smekda_fresh/lib/
+          cp pubspec.yaml /tmp/smekda_fresh/pubspec.yaml
+          cp -r assets/ /tmp/smekda_fresh/assets/
+          
+          # Copy our custom android resources (icons, manifest)
+          cp android/app/src/main/AndroidManifest.xml \
+             /tmp/smekda_fresh/android/app/src/main/AndroidManifest.xml
+          cp -r android/app/src/main/res/mipmap-* \
+             /tmp/smekda_fresh/android/app/src/main/res/
+          
+          # Replace working directory with fresh project
+          cp -r /tmp/smekda_fresh/android ./android_new
+          rm -rf android
+          mv android_new android
+          
+          echo "✅ Fresh Flutter project merged"
+          ls android/
+          ls android/gradle/wrapper/
+
       - name: Get Dependencies
         run: flutter pub get
-
-      - name: Install Gradle & Create Wrapper
-        run: |
-          # Install gradle via apt
-          sudo apt-get update -qq
-          sudo apt-get install -y gradle
-          cd android
-          gradle wrapper --gradle-version=7.6.3 --distribution-type=bin
-          chmod +x gradlew
-          ls -la gradlew gradle/wrapper/
 
       - name: Build APK
         run: flutter build apk --release --no-tree-shake-icons
@@ -59,6 +74,7 @@ jobs:
           body: |
             ## 📱 SMEKDA MOBILE TEST
             Aplikasi Ujian Digital SMKN 2 Sigli
+            
             **Download APK di bawah ⬇️**
           files: build/app/outputs/flutter-apk/app-release.apk
           draft: false
