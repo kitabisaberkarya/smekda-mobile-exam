@@ -5,10 +5,6 @@ on:
     branches: [main, master]
   workflow_dispatch:
 
-# Izin untuk membuat release
-permissions:
-  contents: write
-
 jobs:
   build-apk:
     name: Build Flutter APK
@@ -31,23 +27,18 @@ jobs:
           channel: 'stable'
           cache: true
 
-      - name: Setup Gradle Wrapper
-        run: |
-          wget -q -O android/gradle/wrapper/gradle-wrapper.jar \
-            https://raw.githubusercontent.com/gradle/gradle/v7.6.4/gradle/wrapper/gradle-wrapper.jar
-          cat > android/gradlew << 'GRADLEW'
-          #!/usr/bin/env sh
-          APP_HOME=$(dirname "$0")
-          CLASSPATH=$APP_HOME/gradle/wrapper/gradle-wrapper.jar
-          exec java $DEFAULT_JVM_OPTS $JAVA_OPTS $GRADLE_OPTS \
-            "-Dorg.gradle.appname=gradlew" \
-            -classpath "$CLASSPATH" \
-            org.gradle.wrapper.GradleWrapperMain "$@"
-          GRADLEW
-          chmod +x android/gradlew
-
       - name: Get Dependencies
         run: flutter pub get
+
+      - name: Install Gradle & Create Wrapper
+        run: |
+          # Install gradle via apt
+          sudo apt-get update -qq
+          sudo apt-get install -y gradle
+          cd android
+          gradle wrapper --gradle-version=7.6.3 --distribution-type=bin
+          chmod +x gradlew
+          ls -la gradlew gradle/wrapper/
 
       - name: Build APK
         run: flutter build apk --release --no-tree-shake-icons
@@ -68,9 +59,7 @@ jobs:
           body: |
             ## 📱 SMEKDA MOBILE TEST
             Aplikasi Ujian Digital SMKN 2 Sigli
-            WebView → https://smekda-mobile-test.vercel.app/
-            
-            **⬇️ Download APK di bawah (Assets section)**
+            **Download APK di bawah ⬇️**
           files: build/app/outputs/flutter-apk/app-release.apk
           draft: false
           prerelease: false
