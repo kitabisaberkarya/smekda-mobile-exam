@@ -5,6 +5,10 @@ on:
     branches: [main, master]
   workflow_dispatch:
 
+# Izin untuk membuat release
+permissions:
+  contents: write
+
 jobs:
   build-apk:
     name: Build Flutter APK
@@ -29,11 +33,8 @@ jobs:
 
       - name: Setup Gradle Wrapper
         run: |
-          # Download gradle-wrapper.jar
           wget -q -O android/gradle/wrapper/gradle-wrapper.jar \
             https://raw.githubusercontent.com/gradle/gradle/v7.6.4/gradle/wrapper/gradle-wrapper.jar
-          
-          # Create gradlew script
           cat > android/gradlew << 'GRADLEW'
           #!/usr/bin/env sh
           APP_HOME=$(dirname "$0")
@@ -44,8 +45,6 @@ jobs:
             org.gradle.wrapper.GradleWrapperMain "$@"
           GRADLEW
           chmod +x android/gradlew
-          echo "Gradle wrapper ready"
-          ls -la android/gradle/wrapper/
 
       - name: Get Dependencies
         run: flutter pub get
